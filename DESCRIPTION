@@ -2,7 +2,7 @@ Package: scBio
 Type: Package
 Title: Single Cell Genomics for Enhancing Cell Composition Inference
         from Bulk Genomics Data
-Version: 0.1.0
+Version: 0.1.1
 Author: Amit Frishberg [aut, cre], Naama Peshes-Yaloz [aut], Irit Gat-Viks [aut]
 Maintainer: Amit Frishberg <amfrishberg@gmail.com>
 Description: Cellular population mapping (CPM) a deconvolution algorithm in which single-cell genomics is required in only one or a few samples, where in other samples of the same tissue, only bulk genomics is measured and the underlying fine resolution cellular heterogeneity is inferred.
@@ -15,6 +15,6 @@ Depends: R (>= 2.10)
 Imports: sp, foreach, parallel, doSNOW, raster, fields, LiblineaR,
         limma
 NeedsCompilation: no
-Packaged: 2018-08-02 18:32:24 UTC; IritGNB5
+Packaged: 2018-10-13 14:43:51 UTC; IritGNB5
 Repository: CRAN
-Date/Publication: 2018-08-07 19:40:06 UTC
+Date/Publication: 2018-10-13 22:50:09 UTC

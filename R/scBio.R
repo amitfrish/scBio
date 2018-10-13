@@ -10,18 +10,12 @@
 
 ########## create sub-reference for the deconvolution
 #' @keywords internal
-createSpecificRef <- function(currRefference, refferenceNames, correlations, modelSize, neighborhoodSize, genePercents, chosenCells){
-  specificRef = lapply(chosenCells, function(cell){
-    correlationCol = correlations[cell,refferenceNames == refferenceNames[cell]]
-    chosenRepeats = order(as.numeric(correlationCol),decreasing = F)[1:neighborhoodSize]
-    chosenRepeats = chosenRepeats[!is.na(chosenRepeats)]
-    cellRepeats = currRefference[,which(refferenceNames == refferenceNames[cell])[chosenRepeats]]
-    #colnames(cellRepeats) = rep(colnames(currRefference)[cell],dim(cellRepeats)[2])
-    t(cellRepeats)
-  })
-  specificRef = t(as.data.frame(do.call(rbind, specificRef)))
+createSpecificRef <- function(currRefference, modelSize, neighborhoodSize, genePercents, chosenCells, chosenNeigCells){
+  specificRef = do.call(cbind,lapply(chosenCells,function(chosenCell){
+    currRefference[,chosenNeigCells[[chosenCell]]]
+  }))
   colnames(specificRef) = unlist(lapply(chosenCells,function(cell){
-    rep(colnames(currRefference)[cell],neighborhoodSize)
+    rep(paste(colnames(currRefference)[cell],cell,sep="_"),neighborhoodSize)
   }))
   row.names(specificRef) = row.names(currRefference)
   specificRef = specificRef[sample(1:dim(currRefference)[1],round(genePercents*dim(currRefference)[1])),]
@@ -221,12 +215,22 @@ choseCellsForRuns = function(XY, refNames, modelSize, minSelection, neighborhood
     meanDistMatrix[cellsToReduce] <<- meanDistMatrix[cellsToReduce]/10
     chosenCells
   })
-  list(chosenCellList = chosenCellList, numOfRuns = numOfRuns)
+
+  chosenNeigList = lapply(1:length(refNames),function(cellIndex){
+      selectedCellType = refNames[cellIndex]
+      selectedCellIndexes = which(refNames == selectedCellType)
+      cellXY = XY[cellIndex,]
+      cellDist = fields::rdist(t(as.matrix(cellXY)),XY[selectedCellIndexes,])
+      chosenRepeats = order(as.numeric(cellDist),decreasing = F)[1:neighborhoodSize]
+      chosenRepeats = chosenRepeats[!is.na(chosenRepeats)]
+      selectedCellIndexes[chosenRepeats]
+  })
+  list(chosenCellList = chosenCellList, chosenNeigList = chosenNeigList, numOfRuns = numOfRuns)
 }
 
 ########## CPM main part
 #' @keywords internal
-CPMMain = function(refference,correlations,refferenceNames, Y, chosenCellList ,numOfRuns, modelSize, neighborhoodSize,
+CPMMain = function(refference,refferenceNames, Y, chosenCellList, chosenCellNeigList ,numOfRuns, modelSize, neighborhoodSize,
                      no_cores, genePercents){
   YReduced = Y[row.names(Y) %in% row.names(refference),]
 
@@ -243,8 +247,8 @@ CPMMain = function(refference,correlations,refferenceNames, Y, chosenCellList ,n
     no_cores = max(1, parallel::detectCores() - 1)
   }
   cl<-parallel::makeCluster(no_cores)
-  parallel::clusterExport(cl=cl, varlist=c("refferenceNames", "refferenceSmaller", "YReduced","correlations","neighborhoodSize","modelSize",
-                                 "createSpecificRef","GeneBasedAnova", "chosenCellList", "createNoCellDupeReference", "selectGenesUsingKappa", "runLibLinear", "genePercents"),
+  parallel::clusterExport(cl=cl, varlist=c("refferenceNames", "refferenceSmaller", "YReduced","neighborhoodSize","modelSize",
+                                 "createSpecificRef","GeneBasedAnova", "chosenCellList", "chosenCellNeigList" ,"createNoCellDupeReference", "selectGenesUsingKappa", "runLibLinear", "genePercents"),
                envir=environment())
   doSNOW::registerDoSNOW(cl)
   pb <- utils::txtProgressBar(min = 1, max = numOfRuns, style = 3)
@@ -255,25 +259,23 @@ CPMMain = function(refference,correlations,refferenceNames, Y, chosenCellList ,n
   runNumber = NULL
   resultSmallMatrixes <- foreach::foreach(runNumber = 1:numOfRuns, .options.snow = opts) %dopar2% {
   #for(runNumber in 1:numOfRuns) {
-    completeSpecificRefBefore = createSpecificRef(refferenceSmaller,refferenceNames,correlations, modelSize, neighborhoodSize, genePercents, chosenCellList[[runNumber]])
+    completeSpecificRefBefore = createSpecificRef(refferenceSmaller, modelSize, neighborhoodSize, genePercents, chosenCellList[[runNumber]], chosenCellNeigList)
     completeSpecificRef = completeSpecificRefBefore$ref
-    rm(correlations)
-    gc()
 
     #list of genes between clusters
     clusterNamesVector = rep("", dim(completeSpecificRef)[2])
     for(cluster in unique(refferenceNames)){
-      selectedNamesForCluster = colnames(refferenceSmaller)[completeSpecificRefBefore$chosenCells[which(refferenceNames[completeSpecificRefBefore$chosenCells] == cluster)]]
+      selectedCellsForCluster = completeSpecificRefBefore$chosenCells[which(refferenceNames[completeSpecificRefBefore$chosenCells] == cluster)]
+      selectedNamesForCluster = paste(colnames(refferenceSmaller)[selectedCellsForCluster],selectedCellsForCluster,sep="_")
       clusterNamesVector[!is.na(match(colnames(completeSpecificRef),selectedNamesForCluster))] = cluster
     }
-    completeSpecificRefBetween = completeSpecificRef
-    colnames(completeSpecificRefBetween) = clusterNamesVector
 
     allGenes = c()
 
     #list of genes inside clusters
       allGenesList = lapply(unique(refferenceNames), function(cluster){
         specificClusterRef = completeSpecificRef[,which(clusterNamesVector == cluster)]
+        colnames(specificClusterRef) = colnames(completeSpecificRef)[clusterNamesVector == cluster]
         GeneBasedAnova(specificClusterRef)
       })
 
@@ -291,19 +293,11 @@ CPMMain = function(refference,correlations,refferenceNames, Y, chosenCellList ,n
       YRefinedReduced = YReduced[row.names(YReduced) %in% row.names(X),]
       PBSReductionData = YRefinedReduced
 
-    rm(completeSpecificRefBefore)
-    rm(completeSpecificRef)
-    rm(completeSpecificRefBetween)
-    rm(completeSpecificRefBetween)
-    rm(allGenesList)
-    rm(allGenes)
-    rm(refferenceSmaller)
-    rm(YReduced)
-    gc()
-
     setTxtProgressBar(pb, runNumber)
 
-    t(runLibLinear(X, PBSReductionData))
+    resMatrix = t(runLibLinear(X, PBSReductionData))
+    row.names(resMatrix) = chosenCellList[[runNumber]]
+    resMatrix
   }
   #print(proc.time() - t)
   parallel::stopCluster(cl)
@@ -316,28 +310,16 @@ CPMMain = function(refference,correlations,refferenceNames, Y, chosenCellList ,n
 
   for(resultMatrix in resultSmallMatrixes){
     completeResultMatrix = matrix(0, nrow = dim(resultMatrix)[2], ncol = dim(refferenceSmaller)[2])
-    completeResultMatrix[,match(row.names(resultMatrix),colnames(refferenceSmaller))] = t(resultMatrix)
+    completeResultMatrix[,as.numeric(as.matrix(row.names(resultMatrix)))] = t(resultMatrix)
     predictedCells = predictedCells + completeResultMatrix
     predictedCellsCounts = predictedCellsCounts + abs(sign(completeResultMatrix))
   }
   predictedCellsFinal = predictedCells/predictedCellsCounts
 
   ##### Smoothing #####
-  clusterColsOrder = c()
-  allClusterMeans = lapply(unique(refferenceNames),function(cell){
-    relevantIndexes = which(refferenceNames == cell)
-    clusterColsOrder <<- c(clusterColsOrder, relevantIndexes)
-    correlationOfCluster = correlations[relevantIndexes,relevantIndexes]
-    clusterMeans = lapply(1:length(relevantIndexes),function(chosenIndex){
-      chosenRepeats = order(as.numeric(correlationOfCluster[chosenIndex,]),decreasing = F)[1:neighborhoodSize]
-      chosenRepeats = chosenRepeats[!is.na(chosenRepeats)]
-      cellRepeats = predictedCellsFinal[,relevantIndexes[chosenRepeats]]
-      rowMeans(cellRepeats)
-    })
-    as.matrix(t(as.data.frame(do.call(rbind, clusterMeans))))
-  })
-  allClusterMeansMatrix = as.matrix(as.data.frame(do.call(cbind, allClusterMeans)))
-  allClusterMeansMatrix = allClusterMeansMatrix[,order(clusterColsOrder,decreasing = F)]
+  allClusterMeansMatrix = t(do.call(rbind,lapply(1:length(refferenceNames),function(cell){
+    rowMeans(predictedCellsFinal[,chosenCellNeigList[[cell]]])
+  })))
   colnames(allClusterMeansMatrix) = colnames(refference)
   row.names(allClusterMeansMatrix) = colnames(Y)
 
@@ -392,10 +374,11 @@ CPM = function(SCData, SCLabels, BulkData, cellSpace, no_cores = NULL, neighborh
   }
   cellSelection = choseCellsForRuns(cellSpace, SCLabels, modelSize, minSelection,neighborhoodSize)
   numOfRunsToUse = cellSelection$numOfRuns
+  print(paste("Number of iteration:",numOfRunsToUse,sep=" "))
   cellSelectionList = cellSelection$chosenCellList
-  distMatrix = fields::rdist(cellSpace)
+  cellNeigSelectionList = cellSelection$chosenNeigList
   print("Running CPM, this may take a few minutes")
-  deconvolutionRes = CPMMain(SCData,distMatrix, SCLabels,BulkData, cellSelectionList, numOfRunsToUse,modelSize, neighborhoodSize, no_cores, genePercents)
+  deconvolutionRes = CPMMain(SCData, SCLabels,BulkData, cellSelectionList, cellNeigSelectionList, numOfRunsToUse,modelSize, neighborhoodSize, no_cores, genePercents)
   list(predicted = deconvolutionRes, numOfRuns = numOfRunsToUse)
 }
 

@@ -6,7 +6,7 @@
 \usage{
 CPM(SCData, SCLabels, BulkData, cellSpace, no_cores = NULL,
   neighborhoodSize = 10, modelSize = 50, minSelection = 5,
-  genePercents = 0.4)
+  quantifyTypes = F, calculateCI = F)
 }
 \arguments{
 \item{SCData}{A matrix containing the single-cell RNA-seq data. Each row corresponds to a certain gene and each column to a certain cell.}
@@ -15,7 +15,7 @@ CPM(SCData, SCLabels, BulkData, cellSpace, no_cores = NULL,
 
 \item{BulkData}{A matrix containing heterogenous RNA-seq data for one or more samples. Each row corresponds to a certain gene and each column to a certain sample.}
 
-\item{cellSpace}{The cell space corresponding to the single-cell data. It can be a vector for a 1-dim space or a matrix for a multidimensional space where each column represents a different dimension.}
+\item{cellSpace}{The cell state space corresponding to the single-cell RNA-seq data. It can be a vector for a 1-dim space or a matrix for a multidimensional space where each column represents a different dimension.}
 
 \item{no_cores}{A number for the amount of cores which will be used for the analysis. The defalt (NULL) is total number of cores minus 1.}
 
@@ -23,14 +23,18 @@ CPM(SCData, SCLabels, BulkData, cellSpace, no_cores = NULL,
 
 \item{modelSize}{The reference subset size. The defalt is 50.}
 
-\item{minSelection}{The minimum selection times allowed for each cell. Increasing this value might have a large effect on the algorithm's running time. The defalt is 5.}
+\item{minSelection}{The minimum number of times in which each reference cell is selected. Increasing this value might have a large effect on the algorithm's running time. The defalt is 5.}
 
-\item{genePercents}{Percentage of genes randomely selected in each deconvolution repeat. The defalt is 0.4.}
+\item{quantifyTypes}{A boolean parameter indicating whether the prediction of cell type quantities is needed. The default is FALSE.}
+
+\item{calculateCI}{A boolean parameter indicating whether the calculation of confidence itervals is needed. The default is FALSE.}
 }
 \value{
 A list including:
 \item{predicted}{CPM predicted cell abundance matrix. Each row represnts a sample and each column a single cell}
-\item{numOfRuns}{The number of deconvolution repeats preformed by CPM }
+\item{cellTypePredictions}{CPM predicted cell-type abundance matrix. Each row represnts a sample and each column a single cell-type. This is calculated if quantifyTypes = TRUE.}
+\item{confIntervals}{A matrix containing the confidence iterval for each cell and sample. Each row represnts a sample and each column a single cell. This is calculated if calculateCI = TRUE.}
+\item{numOfRuns}{The number of deconvolution repeats preformed by CPM. }
 }
 \description{
 This function initiate the Cellular Population Mapping (CPM) algorithm - a deconvolution algorithm in which single-cell genomics is required in only one or a few samples, where in other samples of the same tissue, only bulk genomics is measured and the underlying fine resolution cellular heterogeneity is inferred.

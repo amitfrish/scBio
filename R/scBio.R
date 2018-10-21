@@ -231,7 +231,7 @@ choseCellsForRuns = function(XY, refNames, modelSize, minSelection, neighborhood
 ########## CPM main part
 #' @keywords internal
 CPMMain = function(refference,refferenceNames, Y, chosenCellList, chosenCellNeigList ,numOfRuns, modelSize, neighborhoodSize,
-                     no_cores, genePercents){
+                     no_cores, genePercents, quantifyTypes, calculateCI){
   YReduced = Y[row.names(Y) %in% row.names(refference),]
 
   ##### Revome genes low in reference data  #####
@@ -304,7 +304,7 @@ CPMMain = function(refference,refferenceNames, Y, chosenCellList, chosenCellNeig
   close(pb)
 
   ##### Combining cell predictions #####
-  print("Finalizing...")
+  print("Combining CPM iterations")
   predictedCells = matrix(0, nrow = dim(YReduced)[2], ncol = dim(refferenceSmaller)[2])
   predictedCellsCounts = matrix(0, nrow = dim(YReduced)[2], ncol = dim(refferenceSmaller)[2])
 
@@ -317,13 +317,57 @@ CPMMain = function(refference,refferenceNames, Y, chosenCellList, chosenCellNeig
   predictedCellsFinal = predictedCells/predictedCellsCounts
 
   ##### Smoothing #####
+  print("Smoothing")
   allClusterMeansMatrix = t(do.call(rbind,lapply(1:length(refferenceNames),function(cell){
     rowMeans(predictedCellsFinal[,chosenCellNeigList[[cell]]])
   })))
   colnames(allClusterMeansMatrix) = colnames(refference)
   row.names(allClusterMeansMatrix) = colnames(Y)
 
-  allClusterMeansMatrix
+  cellTypeRes = NULL
+  seRes = NULL
+  confMatrix = NULL
+
+  #### Cell type prediction ####
+  if(quantifyTypes){
+    print("Calculating cell type quantities")
+    cellTypeRes = do.call(cbind,lapply(unique(refferenceNames),function(currCluster){
+      rowMeans(allClusterMeansMatrix[,currCluster==refferenceNames])
+    }))
+    colnames(cellTypeRes) = unique(refferenceNames)
+  }
+
+  #### Standard error prediction ####
+  if(calculateCI){
+    print("Calculating the confidence interval matrix")
+
+    resultOriginalSizeMatrixes = lapply(resultSmallMatrixes, function(resultSmallMatrix){
+      completeResultMatrix = matrix(NA, nrow = dim(resultSmallMatrix)[2], ncol = dim(refferenceSmaller)[2])
+      completeResultMatrix[,match(colnames(allClusterMeansMatrix)[as.numeric(as.matrix(row.names(resultSmallMatrix)))],colnames(refferenceSmaller))] = t(resultSmallMatrix)
+      completeResultMatrix
+    })
+
+    seRes <- do.call(rbind,lapply(colnames(YReduced), function(sample){
+      sampleMatrix = do.call(rbind, lapply(resultOriginalSizeMatrixes,function(currRes){
+        currRes[which(colnames(YReduced)==sample),]
+      }))
+      apply(sampleMatrix,2,function(x){
+        sd(x[!is.na(x)])/sqrt(length(which(!is.na(x))))
+      })
+    }))
+
+    seResNorm = t(do.call(rbind,lapply(1:length(refferenceNames),function(cell){
+      rowMeans(seRes[,chosenCellNeigList[[cell]]])
+    })))
+
+    confMatrix = matrix(paste(allClusterMeansMatrix-1.96*seResNorm,allClusterMeansMatrix+1.96*seResNorm,sep = " <-> "),ncol = dim(allClusterMeansMatrix)[2])
+
+    colnames(seRes) = colnames(confMatrix) = colnames(refference)
+    row.names(seRes) = row.names(confMatrix) = colnames(Y)
+  }
+
+  print("Done")
+  list(predictions = allClusterMeansMatrix, cellTypePredictions = cellTypeRes, sePredictions = seRes, confMatrix = confMatrix)
 }
 
 ########## CPM
@@ -334,15 +378,18 @@ CPMMain = function(refference,refferenceNames, Y, chosenCellList, chosenCellNeig
 #' @param SCData A matrix containing the single-cell RNA-seq data. Each row corresponds to a certain gene and each column to a certain cell.
 #' @param SCLabels A vector containing the labels of each of the cells.
 #' @param BulkData A matrix containing heterogenous RNA-seq data for one or more samples. Each row corresponds to a certain gene and each column to a certain sample.
-#' @param cellSpace The cell space corresponding to the single-cell data. It can be a vector for a 1-dim space or a matrix for a multidimensional space where each column represents a different dimension.
+#' @param cellSpace The cell state space corresponding to the single-cell RNA-seq data. It can be a vector for a 1-dim space or a matrix for a multidimensional space where each column represents a different dimension.
 #' @param no_cores A number for the amount of cores which will be used for the analysis. The defalt (NULL) is total number of cores minus 1.
 #' @param neighborhoodSize Cell neighborhood size which will be used for the analysis. The defalt is 10.
 #' @param modelSize The reference subset size. The defalt is 50.
-#' @param minSelection The minimum selection times allowed for each cell. Increasing this value might have a large effect on the algorithm's running time. The defalt is 5.
-#' @param genePercents Percentage of genes randomely selected in each deconvolution repeat. The defalt is 0.4.
+#' @param minSelection The minimum number of times in which each reference cell is selected. Increasing this value might have a large effect on the algorithm's running time. The defalt is 5.
+#' @param quantifyTypes A boolean parameter indicating whether the prediction of cell type quantities is needed. The default is FALSE.
+#' @param calculateCI A boolean parameter indicating whether the calculation of confidence itervals is needed. The default is FALSE.
 #' @return A list including:
 #' \item{predicted}{CPM predicted cell abundance matrix. Each row represnts a sample and each column a single cell}
-#' \item{numOfRuns}{The number of deconvolution repeats preformed by CPM }
+#' \item{cellTypePredictions}{CPM predicted cell-type abundance matrix. Each row represnts a sample and each column a single cell-type. This is calculated if quantifyTypes = TRUE.}
+#' \item{confIntervals}{A matrix containing the confidence iterval for each cell and sample. Each row represnts a sample and each column a single cell. This is calculated if calculateCI = TRUE.}
+#' \item{numOfRuns}{The number of deconvolution repeats preformed by CPM. }
 #' @examples
 #' data(SCLabels)
 #' data(SCFlu)
@@ -368,7 +415,8 @@ CPMMain = function(refference,refferenceNames, Y, chosenCellList, chosenCellNeig
 #' @importFrom "utils" "setTxtProgressBar"
 #' @importFrom "stats" "sd" "var"
 #' @importFrom "grDevices" "chull"
-CPM = function(SCData, SCLabels, BulkData, cellSpace, no_cores = NULL, neighborhoodSize = 10, modelSize = 50, minSelection = 5, genePercents = 0.4){
+CPM = function(SCData, SCLabels, BulkData, cellSpace, no_cores = NULL, neighborhoodSize = 10, modelSize = 50, minSelection = 5, quantifyTypes = F, calculateCI = F){
+  genePercents = 0.4
   if(!is.null(SCData) & !is.null(SCLabels) & !is.null(BulkData) & !is.null(cellSpace)){
     print("Selecting cells for each iteration")
   }
@@ -378,8 +426,8 @@ CPM = function(SCData, SCLabels, BulkData, cellSpace, no_cores = NULL, neighborh
   cellSelectionList = cellSelection$chosenCellList
   cellNeigSelectionList = cellSelection$chosenNeigList
   print("Running CPM, this may take a few minutes")
-  deconvolutionRes = CPMMain(SCData, SCLabels,BulkData, cellSelectionList, cellNeigSelectionList, numOfRunsToUse,modelSize, neighborhoodSize, no_cores, genePercents)
-  list(predicted = deconvolutionRes, numOfRuns = numOfRunsToUse)
+  deconvolutionRes = CPMMain(SCData, SCLabels,BulkData, cellSelectionList, cellNeigSelectionList, numOfRunsToUse,modelSize, neighborhoodSize, no_cores, genePercents, quantifyTypes, calculateCI)
+  list(predicted = deconvolutionRes$predictions, cellTypePredictions = deconvolutionRes$cellTypePredictions, confIntervals = deconvolutionRes$confMatrix, numOfRuns = numOfRunsToUse)
 }
 
 #' Gene expression profiles of flu and pbs sample.
@@ -413,4 +461,3 @@ CPM = function(SCData, SCLabels, BulkData, cellSpace, no_cores = NULL, neighborh
 #' @format A matrix with 349 rows (cells) and 2 columns (dimensions).
 #' @source \url{http://www.diamondse.info/}
 "SCCellSpace"
-

@@ -231,7 +231,7 @@ choseCellsForRuns = function(XY, refNames, modelSize, minSelection, neighborhood
 ########## CPM main part
 #' @keywords internal
 CPMMain = function(refference,refferenceNames, Y, chosenCellList, chosenCellNeigList ,numOfRuns, modelSize, neighborhoodSize,
-                     no_cores, genePercents, quantifyTypes, calculateCI){
+                     no_cores, genePercents, quantifyTypes, typeTransformation, calculateCI){
   YReduced = Y[row.names(Y) %in% row.names(refference),]
 
   ##### Revome genes low in reference data  #####
@@ -331,10 +331,33 @@ CPMMain = function(refference,refferenceNames, Y, chosenCellList, chosenCellNeig
   #### Cell type prediction ####
   if(quantifyTypes){
     print("Calculating cell type quantities")
+    allClusterMeansMatrixForCellTypes = allClusterMeansMatrix
+    if(typeTransformation){
+      allClusterMeansMatrixForCellTypes = t(apply(t(allClusterMeansMatrixForCellTypes),2,function(x){
+        x-min(x)
+      }))
+    }
+
+    # cellTypeRes = do.call(cbind,lapply(unique(refferenceNames),function(currCluster){
+    #   apply(allClusterMeansMatrixForCellTypes,1,function(x){
+    #     #ks.test(x,x[currCluster==refferenceNames],alternative = "less")$p.value
+    #     df = as.data.frame(cbind(sample(x,length(which(currCluster==refferenceNames))),x[currCluster==refferenceNames]))
+    #     lm(V2~V1+0, data = df)$coefficients[1]
+    #   })
+    # }))
+
     cellTypeRes = do.call(cbind,lapply(unique(refferenceNames),function(currCluster){
-      rowMeans(allClusterMeansMatrix[,currCluster==refferenceNames])
+      rowMeans(allClusterMeansMatrixForCellTypes[,currCluster==refferenceNames])
     }))
     colnames(cellTypeRes) = unique(refferenceNames)
+
+    if(typeTransformation){
+      cellTypeRes = t(apply(t(cellTypeRes),2,function(x){
+        #x = (x-min(x))
+        x/sum(x)
+      })
+      )
+    }
   }
 
   #### Standard error prediction ####
@@ -374,6 +397,7 @@ CPMMain = function(refference,refferenceNames, Y, chosenCellList, chosenCellNeig
 #' The Cellular Population Mapping (CPM) algorithm.
 #'
 #' This function initiate the Cellular Population Mapping (CPM) algorithm - a deconvolution algorithm in which single-cell genomics is required in only one or a few samples, where in other samples of the same tissue, only bulk genomics is measured and the underlying fine resolution cellular heterogeneity is inferred.
+#' CPM predicts the abundance of cells (and cell types) ranging monotonically from negative to positive levels. Using a relative framework these values correspond to decrease and increase in cell abundance levels, respectively. On the other hand, in an absolute framework lower values (including negatives) correspond to lower abundances and vise versa. These values are comparable between samples.
 #'
 #' @param SCData A matrix containing the single-cell RNA-seq data. Each row corresponds to a certain gene and each column to a certain cell.
 #' @param SCLabels A vector containing the labels of each of the cells.
@@ -383,13 +407,16 @@ CPMMain = function(refference,refferenceNames, Y, chosenCellList, chosenCellNeig
 #' @param neighborhoodSize Cell neighborhood size which will be used for the analysis. The defalt is 10.
 #' @param modelSize The reference subset size. The defalt is 50.
 #' @param minSelection The minimum number of times in which each reference cell is selected. Increasing this value might have a large effect on the algorithm's running time. The defalt is 5.
-#' @param quantifyTypes A boolean parameter indicating whether the prediction of cell type quantities is needed. The default is FALSE.
+#' @param quantifyTypes A boolean parameter indicating whether the prediction of cell type quantities is needed. This is recommended only in the case of homogenicity within cell types. Cell types with high inner cellular variability will recieve less reliabe values. The default is FALSE.
+#' @param typeTransformation This parameter will have an effect only if quantifyTypes = TRUE. A boolean parameter indicating whether cell type deconvolution should be provided in fractions. This is done by substracting all cell types by values of the minimal cell type and dividing in their sum. This is not recommended, since it reduces the comparability between sample. The default is FALSE.
 #' @param calculateCI A boolean parameter indicating whether the calculation of confidence itervals is needed. The default is FALSE.
 #' @return A list including:
-#' \item{predicted}{CPM predicted cell abundance matrix. Each row represnts a sample and each column a single cell}
-#' \item{cellTypePredictions}{CPM predicted cell-type abundance matrix. Each row represnts a sample and each column a single cell-type. This is calculated if quantifyTypes = TRUE.}
+#' \item{predicted}{CPM predicted cell abundance matrix. Each row represents a sample and each column a single cell.}
+#' \item{cellTypePredictions}{CPM predicted cell-type abundance matrix. Each row represnts a sample and each column a single cell-type. This is calculated if quantifyTypes = TRUE. }
 #' \item{confIntervals}{A matrix containing the confidence iterval for each cell and sample. Each row represnts a sample and each column a single cell. This is calculated if calculateCI = TRUE.}
 #' \item{numOfRuns}{The number of deconvolution repeats preformed by CPM. }
+#' @references
+#' Frishberg, A., Peshes-Yaloz, N., Cohn, O., Rosentul, D., Steuerman, Y., Valadarsky, L., Yankovitz, G., Mandelboim, M., Iraqi, F.A., Amit, I. et al. (2019) Cell composition analysis of bulk genomics using single-cell data. Nature Methods, 16, 327-332.
 #' @examples
 #' data(SCLabels)
 #' data(SCFlu)
@@ -415,7 +442,7 @@ CPMMain = function(refference,refferenceNames, Y, chosenCellList, chosenCellNeig
 #' @importFrom "utils" "setTxtProgressBar"
 #' @importFrom "stats" "sd" "var"
 #' @importFrom "grDevices" "chull"
-CPM = function(SCData, SCLabels, BulkData, cellSpace, no_cores = NULL, neighborhoodSize = 10, modelSize = 50, minSelection = 5, quantifyTypes = F, calculateCI = F){
+CPM = function(SCData, SCLabels, BulkData, cellSpace, no_cores = NULL, neighborhoodSize = 10, modelSize = 50, minSelection = 5, quantifyTypes = F, typeTransformation = F, calculateCI = F){
   genePercents = 0.4
   if(!is.null(SCData) & !is.null(SCLabels) & !is.null(BulkData) & !is.null(cellSpace)){
     print("Selecting cells for each iteration")
@@ -426,7 +453,7 @@ CPM = function(SCData, SCLabels, BulkData, cellSpace, no_cores = NULL, neighborh
   cellSelectionList = cellSelection$chosenCellList
   cellNeigSelectionList = cellSelection$chosenNeigList
   print("Running CPM, this may take a few minutes")
-  deconvolutionRes = CPMMain(SCData, SCLabels,BulkData, cellSelectionList, cellNeigSelectionList, numOfRunsToUse,modelSize, neighborhoodSize, no_cores, genePercents, quantifyTypes, calculateCI)
+  deconvolutionRes = CPMMain(SCData, SCLabels,BulkData, cellSelectionList, cellNeigSelectionList, numOfRunsToUse,modelSize, neighborhoodSize, no_cores, genePercents, quantifyTypes, typeTransformation, calculateCI)
   list(predicted = deconvolutionRes$predictions, cellTypePredictions = deconvolutionRes$cellTypePredictions, confIntervals = deconvolutionRes$confMatrix, numOfRuns = numOfRunsToUse)
 }
 
@@ -435,7 +462,6 @@ CPM = function(SCData, SCLabels, BulkData, cellSpace, no_cores = NULL, neighborh
 #' A dataset containing the RNA-seq profiles of colaborative-cross (CC) mice 2 days after the infection with either the flu virus or PBS.
 #'
 #' @format A matrix with 1858 rows (genes) and 74 columns (samples).
-#' @source \url{http://www.diamondse.info/}
 "BulkFlu"
 
 #' Gene expression profiles of lung cells after influenza infection.
@@ -443,7 +469,6 @@ CPM = function(SCData, SCLabels, BulkData, cellSpace, no_cores = NULL, neighborh
 #' A dataset containing the RNA-seq profiles of lung cells from multiple cell types, taken from two mice 2 days after the infection with either the flu virus or PBS.
 #'
 #' @format A matrix with 1858 rows (genes) and 349 columns (cells).
-#' @source \url{http://www.diamondse.info/}
 "SCFlu"
 
 #' Single-cell classification into cell types.
@@ -451,7 +476,6 @@ CPM = function(SCData, SCLabels, BulkData, cellSpace, no_cores = NULL, neighborh
 #' A dataset containing the classification of each cell in the SCFlu dataset to a specific cell type.
 #'
 #' @format A vector with 349 values.
-#' @source \url{http://www.diamondse.info/}
 "SCLabels"
 
 #' Single-cell cell space.
@@ -459,5 +483,4 @@ CPM = function(SCData, SCLabels, BulkData, cellSpace, no_cores = NULL, neighborh
 #' A dataset containing a 2-dim cell space of all single-cells in the SCFlu dataset.
 #'
 #' @format A matrix with 349 rows (cells) and 2 columns (dimensions).
-#' @source \url{http://www.diamondse.info/}
 "SCCellSpace"

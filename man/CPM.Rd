@@ -6,7 +6,7 @@
 \usage{
 CPM(SCData, SCLabels, BulkData, cellSpace, no_cores = NULL,
   neighborhoodSize = 10, modelSize = 50, minSelection = 5,
-  quantifyTypes = F, calculateCI = F)
+  quantifyTypes = F, typeTransformation = F, calculateCI = F)
 }
 \arguments{
 \item{SCData}{A matrix containing the single-cell RNA-seq data. Each row corresponds to a certain gene and each column to a certain cell.}
@@ -25,19 +25,22 @@ CPM(SCData, SCLabels, BulkData, cellSpace, no_cores = NULL,
 
 \item{minSelection}{The minimum number of times in which each reference cell is selected. Increasing this value might have a large effect on the algorithm's running time. The defalt is 5.}
 
-\item{quantifyTypes}{A boolean parameter indicating whether the prediction of cell type quantities is needed. The default is FALSE.}
+\item{quantifyTypes}{A boolean parameter indicating whether the prediction of cell type quantities is needed. This is recommended only in the case of homogenicity within cell types. Cell types with high inner cellular variability will recieve less reliabe values. The default is FALSE.}
+
+\item{typeTransformation}{This parameter will have an effect only if quantifyTypes = TRUE. A boolean parameter indicating whether cell type deconvolution should be provided in fractions. This is done by substracting all cell types by values of the minimal cell type and dividing in their sum. This is not recommended, since it reduces the comparability between sample. The default is FALSE.}
 
 \item{calculateCI}{A boolean parameter indicating whether the calculation of confidence itervals is needed. The default is FALSE.}
 }
 \value{
 A list including:
-\item{predicted}{CPM predicted cell abundance matrix. Each row represnts a sample and each column a single cell}
-\item{cellTypePredictions}{CPM predicted cell-type abundance matrix. Each row represnts a sample and each column a single cell-type. This is calculated if quantifyTypes = TRUE.}
+\item{predicted}{CPM predicted cell abundance matrix. Each row represents a sample and each column a single cell.}
+\item{cellTypePredictions}{CPM predicted cell-type abundance matrix. Each row represnts a sample and each column a single cell-type. This is calculated if quantifyTypes = TRUE. }
 \item{confIntervals}{A matrix containing the confidence iterval for each cell and sample. Each row represnts a sample and each column a single cell. This is calculated if calculateCI = TRUE.}
 \item{numOfRuns}{The number of deconvolution repeats preformed by CPM. }
 }
 \description{
 This function initiate the Cellular Population Mapping (CPM) algorithm - a deconvolution algorithm in which single-cell genomics is required in only one or a few samples, where in other samples of the same tissue, only bulk genomics is measured and the underlying fine resolution cellular heterogeneity is inferred.
+CPM predicts the abundance of cells (and cell types) ranging monotonically from negative to positive levels. Using a relative framework these values correspond to decrease and increase in cell abundance levels, respectively. On the other hand, in an absolute framework lower values (including negatives) correspond to lower abundances and vise versa. These values are comparable between samples.
 }
 \examples{
 data(SCLabels)
@@ -60,4 +63,7 @@ res = CPM(SCData = SCFlu[,oneCellTypeIndexes], SCLabels = SCLabels[oneCellTypeIn
 res = CPM(SCFlu, SCLabels, BulkFluReduced, SCCellSpace, no_cores = 2)
 ### Full multi-threading : CPM(SCFlu, SCLabels, BulkFluReduced, SCCellSpace)
 }
+}
+\references{
+Frishberg, A., Peshes-Yaloz, N., Cohn, O., Rosentul, D., Steuerman, Y., Valadarsky, L., Yankovitz, G., Mandelboim, M., Iraqi, F.A., Amit, I. et al. (2019) Cell composition analysis of bulk genomics using single-cell data. Nature Methods, 16, 327-332.
 }

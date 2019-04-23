@@ -5,7 +5,7 @@ scBio is a R pacakge containing a repository of methods aiming to understand com
 A method based on computational deconvolution for identifying a cell population map from bulk gene expression data of a heterogeneous sample. The CPM method provides an advantageous alternative to existing deconvolution approaches, particularly in providing a fine-resolution mapping. Specifically, CPM is focused on cell alterations within each cell type and not changes in the total number of cells in the cell type. Therefore, it can model cell changes across trajectories and specific cell subtypes.
 
 #### Inputs
-# CPM has four mandetory inputs:
+##### CPM has four mandetory inputs:
 
 SCData - A matrix containing the single-cell RNA-seq data. Each row corresponds to a certain gene and each column to a certain cell.
 
@@ -22,13 +22,13 @@ data(BulkFlu)
 data(SCCellSpace)
 ```
 
-# CPM has also two important optional inputs:
+##### CPM has also two important optional inputs:
 
 neighborhoodSize - Cell neighborhood size which will be used for the analysis. This should be lower than the number of cells in the smallest cell type. The defalt is 10. Generally, neighborhoodSize should be the highest number which represents well the number of neighbouring cells that are similar to the center cell. Large number can increase the analysis robustness in dense cell spaces but also can reduce it if the space is too sparse. 
 
 modelSize - The reference subset size in each iteration of CPM. This should be lower than the total number of cells. The defalt is 50. The selected cells within each model will be gathered from all cell types. If you have a low number of cell types or low totel number of cells across all cell types, this should be lower than 50. Generally, up to five or six cells from each cell type is still okay.
 
-# Other optional inputs:
+##### Other optional inputs:
 
 no_cores - A number for the amount of cores which will be used for the analysis. The defalt (NULL) is total number of cores minus 1.
 

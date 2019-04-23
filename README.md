@@ -22,6 +22,21 @@ data(BulkFlu)
 data(SCCellSpace)
 ```
 
+CPM has also four mandetory inputs:
+no_cores - A number for the amount of cores which will be used for the analysis. The defalt (NULL) is total number of cores minus 1.
+
+neighborhoodSize - Cell neighborhood size which will be used for the analysis. This should be lower than the number of cells in the smallest cell type. The defalt is 10. Generally, neighborhoodSize should be the highest number which represents well the number of neighbouring cells that are similar to the center cell. Large number can increase the analysis robustness in dense cell spaces but also can reduce it if the space is too sparse. 
+
+modelSize - The reference subset size in each iteration of CPM. This should be lower than the total number of cells. The defalt is 50. The selected cells within each model will be gathered from all cell types. If you have a low number of cell types or low totel number of cells across all cell types, this should be lower than 50. Generally, up to five or six cells from each cell type is still okay.
+
+minSelection - The minimum number of times in which each reference cell is selected. Increasing this value might make CPM more robust but also have a large effect on the algorithm's running time. The defalt is 5.
+
+quantifyTypes - A boolean parameter indicating whether the prediction of cell type quantities is needed. This is recommended only in the case of homogenicity within cell types. Cell types with high inner cellular variability will recieve less reliabe values. The default is FALSE.
+
+typeTransformation - This parameter will have an effect only if quantifyTypes = TRUE. A boolean parameter indicating whether cell type deconvolution should be provided in fractions. This is done by substracting all cell types by values of the minimal cell type and dividing in their sum. This is not recommended, since it reduces the comparability between sample. The default is FALSE.
+
+calculateCI - A boolean parameter indicating whether the calculation of confidence itervals is needed. The default is FALSE.
+
 #### Relative prediction
 If you have a test group and a control group, for example: disease and healthy, different time points and time points zero, you should use CPM in a relative manner.
 

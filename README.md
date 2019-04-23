@@ -22,7 +22,8 @@ data(BulkFlu)
 data(SCCellSpace)
 ```
 
-CPM has also four mandetory inputs:
+CPM has also seven optional inputs:
+
 no_cores - A number for the amount of cores which will be used for the analysis. The defalt (NULL) is total number of cores minus 1.
 
 neighborhoodSize - Cell neighborhood size which will be used for the analysis. This should be lower than the number of cells in the smallest cell type. The defalt is 10. Generally, neighborhoodSize should be the highest number which represents well the number of neighbouring cells that are similar to the center cell. Large number can increase the analysis robustness in dense cell spaces but also can reduce it if the space is too sparse. 

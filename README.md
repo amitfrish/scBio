@@ -28,6 +28,8 @@ neighborhoodSize - Cell neighborhood size which will be used for the analysis. T
 
 modelSize - The reference subset size in each iteration of CPM. This should be lower than the total number of cells. The defalt is 50. The selected cells within each model will be gathered from all cell types. If you have a low number of cell types or low totel number of cells across all cell types, this should be lower than 50. Generally, up to five or six cells from each cell type is still okay.
 
+Importantly, CPM relies on many iterative processes and therefore might take a long running time. For extremely large single cell datasets, we suggest to use only a portion of the data, using random sampling of the cells.
+
 #### Other optional inputs:
 
 no_cores - A number for the amount of cores which will be used for the analysis. The defalt (NULL) is total number of cores minus 1.

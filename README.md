@@ -7,7 +7,7 @@ A method based on computational deconvolution for identifying a cell population 
 ### Inputs
 #### CPM has four mandetory inputs:
 
-SCData - A matrix containing the single-cell RNA-seq data. Each row corresponds to a certain gene and each column to a certain cell.
+SCData - A matrix containing the single-cell RNA-seq data. Each row corresponds to a certain gene and each column to a certain cell. Importantly, CPM relies on many iterative processes and therefore might take a long running time. For extremely large single cell datasets, we suggest to use only a portion of the data, using random sampling of the cells.
 
 SCLabels - A vector containing the labels of each of the cells.
 
@@ -27,8 +27,6 @@ data(SCCellSpace)
 neighborhoodSize - Cell neighborhood size which will be used for the analysis. This should be lower than the number of cells in the smallest cell type. The defalt is 10. Generally, neighborhoodSize should be the highest number which represents well the number of neighbouring cells that are similar to the center cell. Large number can increase the analysis robustness in dense cell spaces but also can reduce it if the space is too sparse. 
 
 modelSize - The reference subset size in each iteration of CPM. This should be lower than the total number of cells. The defalt is 50. The selected cells within each model will be gathered from all cell types. If you have a low number of cell types or low totel number of cells across all cell types, this should be lower than 50. Generally, up to five or six cells from each cell type is still okay.
-
-Importantly, CPM relies on many iterative processes and therefore might take a long running time. For extremely large single cell datasets, we suggest to use only a portion of the data, using random sampling of the cells.
 
 #### Other optional inputs:
 

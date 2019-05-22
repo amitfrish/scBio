@@ -1,10 +1,11 @@
 Package: scBio
 Type: Package
 Title: Single Cell Genomics for Enhancing Cell Composition Inference from Bulk Genomics Data
-Version: 0.1.4
+Version: 0.1.5
 Author: Amit Frishberg [aut, cre], Naama Peshes-Yaloz [aut], Irit Gat-Viks [aut]
 Maintainer: Amit Frishberg <amfrishberg@gmail.com>
-URL: <https://github.com/amitfrish/scBio>
+URL: https://github.com/amitfrish/scBio
+BugReports: https://github.com/amitfrish/scBio/issues
 Description: Cellular population mapping (CPM) a deconvolution algorithm in which single-cell genomics is required in only one or a few samples, where in other samples of the same tissue, only bulk genomics is measured and the underlying fine resolution cellular heterogeneity is inferred.
 License: GPL-2
 Encoding: UTF-8

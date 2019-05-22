@@ -5,9 +5,6 @@
 \alias{SCFlu}
 \title{Gene expression profiles of lung cells after influenza infection.}
 \format{A matrix with 1858 rows (genes) and 349 columns (cells).}
-\source{
-\url{http://www.diamondse.info/}
-}
 \usage{
 SCFlu
 }

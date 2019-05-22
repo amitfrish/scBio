@@ -9,19 +9,19 @@ CPM(SCData, SCLabels, BulkData, cellSpace, no_cores = NULL,
   quantifyTypes = F, typeTransformation = F, calculateCI = F)
 }
 \arguments{
-\item{SCData}{A matrix containing the single-cell RNA-seq data. Each row corresponds to a certain gene and each column to a certain cell.}
+\item{SCData}{A matrix containing the single-cell RNA-seq data. Each row corresponds to a certain gene and each column to a certain cell. Importantly, CPM relies on many iterative processes and therefore might take a long running time. For extremely large single cell datasets, we suggest to use only a portion of the data, using random sampling of the cells.}
 
 \item{SCLabels}{A vector containing the labels of each of the cells.}
 
 \item{BulkData}{A matrix containing heterogenous RNA-seq data for one or more samples. Each row corresponds to a certain gene and each column to a certain sample.}
 
-\item{cellSpace}{The cell state space corresponding to the single-cell RNA-seq data. It can be a vector for a 1-dim space or a matrix for a multidimensional space where each column represents a different dimension.}
+\item{cellSpace}{The cell state space corresponding to the single-cell RNA-seq data. It can be a vector for a 1-dim space or a 2D matrix for a two space where each column represents a different dimension. The cell space should incorporate the similarities of cells within cell types. Similarities between cells from different cell types, based on the cell space, are not taken into account in CPM.}
 
 \item{no_cores}{A number for the amount of cores which will be used for the analysis. The defalt (NULL) is total number of cores minus 1.}
 
-\item{neighborhoodSize}{Cell neighborhood size which will be used for the analysis. The defalt is 10.}
+\item{neighborhoodSize}{Cell neighborhood size which will be used for the analysis. This should be lower than the number of cells in the smallest cell type. The defalt is 10.}
 
-\item{modelSize}{The reference subset size. The defalt is 50.}
+\item{modelSize}{The reference subset size in each iteration of CPM. This should be lower than the total number of cells. The defalt is 50.}
 
 \item{minSelection}{The minimum number of times in which each reference cell is selected. Increasing this value might have a large effect on the algorithm's running time. The defalt is 5.}
 

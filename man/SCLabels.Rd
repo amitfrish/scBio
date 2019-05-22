@@ -5,9 +5,6 @@
 \alias{SCLabels}
 \title{Single-cell classification into cell types.}
 \format{A vector with 349 values.}
-\source{
-\url{http://www.diamondse.info/}
-}
 \usage{
 SCLabels
 }

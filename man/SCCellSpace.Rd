@@ -5,9 +5,6 @@
 \alias{SCCellSpace}
 \title{Single-cell cell space.}
 \format{A matrix with 349 rows (cells) and 2 columns (dimensions).}
-\source{
-\url{http://www.diamondse.info/}
-}
 \usage{
 SCCellSpace
 }

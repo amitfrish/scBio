@@ -5,9 +5,6 @@
 \alias{BulkFlu}
 \title{Gene expression profiles of flu and pbs sample.}
 \format{A matrix with 1858 rows (genes) and 74 columns (samples).}
-\source{
-\url{http://www.diamondse.info/}
-}
 \usage{
 BulkFlu
 }

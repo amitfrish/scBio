@@ -1,6 +1,10 @@
 # scBio
 scBio is a R pacakge containing a repository of methods aiming to understand complex processes related to the cellular variability within tissues.
 
+### New in version 0.1.5:
+1. Added automatic alteration of the neighbourhood size parameter in the cases of cell types with limited number of cells.
+2. Fixed a problem when using a single cell or bulk data with small amount of genes.
+
 ## CPM
 A method based on computational deconvolution for identifying a cell population map from bulk gene expression data of a heterogeneous sample. The CPM method provides an advantageous alternative to existing deconvolution approaches, particularly in providing a fine-resolution mapping. Specifically, CPM is focused on cell alterations within each cell type and not changes in the total number of cells in the cell type. Therefore, it can model cell changes across trajectories and specific cell subtypes.
 

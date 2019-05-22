@@ -83,9 +83,9 @@ selectGenesUsingKappa <- function(refferenceNoDups, allGenes){
   bestKappa = Inf
   bestG = 0
   mul = 1
-  maxNumberOfGenesPerCell = 100
+  maxNumberOfGenesPerCell = 50
   bestGenes = c()
-  indexRange = 20:maxNumberOfGenesPerCell
+  indexRange = 2:maxNumberOfGenesPerCell
   for (i in indexRange){
     selectedGenes = unique(as.character(unlist(lapply(1:length(allGenes), function(listIndex){
       unlist(allGenes[listIndex])[which(!is.na(unlist(allGenes[listIndex])[1:as.numeric(i*mul)]))]
@@ -177,6 +177,12 @@ choseCellsForRuns = function(XY, refNames, modelSize, minSelection, neighborhood
       currXY = XY[clusterIndexes,]
       ch <- grDevices::chull(currXY)
       coords <- currXY[c(ch, ch[1]), ]
+      # ch = geometry::convhulln(currXY[,1:3])
+      # coords = t(apply(ch,1,function(currCh){
+      #   unlist(lapply(1:length(currCh),function(currIndex){
+      #     currXY[currCh[currIndex],currIndex]
+      #   }))
+      # }))
       poly = sp::SpatialPolygons(list(sp::Polygons(list(sp::Polygon(coords)), "x")))
       grid <- raster::raster(raster::extent(poly), nrows = ceiling(sqrt(nbins)), ncols= ceiling(sqrt(nbins)))
       sp::proj4string(grid)<-sp::proj4string(poly)
@@ -259,6 +265,7 @@ CPMMain = function(refference,refferenceNames, Y, chosenCellList, chosenCellNeig
   runNumber = NULL
   resultSmallMatrixes <- foreach::foreach(runNumber = 1:numOfRuns, .options.snow = opts) %dopar2% {
   #for(runNumber in 1:numOfRuns) {
+    print(runNumber)
     completeSpecificRefBefore = createSpecificRef(refferenceSmaller, modelSize, neighborhoodSize, genePercents, chosenCellList[[runNumber]], chosenCellNeigList)
     completeSpecificRef = completeSpecificRefBefore$ref
 
@@ -399,13 +406,13 @@ CPMMain = function(refference,refferenceNames, Y, chosenCellList, chosenCellNeig
 #' This function initiate the Cellular Population Mapping (CPM) algorithm - a deconvolution algorithm in which single-cell genomics is required in only one or a few samples, where in other samples of the same tissue, only bulk genomics is measured and the underlying fine resolution cellular heterogeneity is inferred.
 #' CPM predicts the abundance of cells (and cell types) ranging monotonically from negative to positive levels. Using a relative framework these values correspond to decrease and increase in cell abundance levels, respectively. On the other hand, in an absolute framework lower values (including negatives) correspond to lower abundances and vise versa. These values are comparable between samples.
 #'
-#' @param SCData A matrix containing the single-cell RNA-seq data. Each row corresponds to a certain gene and each column to a certain cell.
+#' @param SCData A matrix containing the single-cell RNA-seq data. Each row corresponds to a certain gene and each column to a certain cell. Importantly, CPM relies on many iterative processes and therefore might take a long running time. For extremely large single cell datasets, we suggest to use only a portion of the data, using random sampling of the cells.
 #' @param SCLabels A vector containing the labels of each of the cells.
 #' @param BulkData A matrix containing heterogenous RNA-seq data for one or more samples. Each row corresponds to a certain gene and each column to a certain sample.
-#' @param cellSpace The cell state space corresponding to the single-cell RNA-seq data. It can be a vector for a 1-dim space or a matrix for a multidimensional space where each column represents a different dimension.
+#' @param cellSpace The cell state space corresponding to the single-cell RNA-seq data. It can be a vector for a 1-dim space or a 2D matrix for a two space where each column represents a different dimension. The cell space should incorporate the similarities of cells within cell types. Similarities between cells from different cell types, based on the cell space, are not taken into account in CPM.
 #' @param no_cores A number for the amount of cores which will be used for the analysis. The defalt (NULL) is total number of cores minus 1.
-#' @param neighborhoodSize Cell neighborhood size which will be used for the analysis. The defalt is 10.
-#' @param modelSize The reference subset size. The defalt is 50.
+#' @param neighborhoodSize Cell neighborhood size which will be used for the analysis. This should be lower than the number of cells in the smallest cell type. The defalt is 10.
+#' @param modelSize The reference subset size in each iteration of CPM. This should be lower than the total number of cells. The defalt is 50.
 #' @param minSelection The minimum number of times in which each reference cell is selected. Increasing this value might have a large effect on the algorithm's running time. The defalt is 5.
 #' @param quantifyTypes A boolean parameter indicating whether the prediction of cell type quantities is needed. This is recommended only in the case of homogenicity within cell types. Cell types with high inner cellular variability will recieve less reliabe values. The default is FALSE.
 #' @param typeTransformation This parameter will have an effect only if quantifyTypes = TRUE. A boolean parameter indicating whether cell type deconvolution should be provided in fractions. This is done by substracting all cell types by values of the minimal cell type and dividing in their sum. This is not recommended, since it reduces the comparability between sample. The default is FALSE.
@@ -444,6 +451,14 @@ CPMMain = function(refference,refferenceNames, Y, chosenCellList, chosenCellNeig
 #' @importFrom "grDevices" "chull"
 CPM = function(SCData, SCLabels, BulkData, cellSpace, no_cores = NULL, neighborhoodSize = 10, modelSize = 50, minSelection = 5, quantifyTypes = F, typeTransformation = F, calculateCI = F){
   genePercents = 0.4
+  if(min(table(SCLabels))<neighborhoodSize){
+    neighborhoodSize = min(table(SCLabels))
+    print(paste("Neighborhood size was switched to:",neighborhoodSize,sep=" "))
+  }
+  if(length(SCLabels)<modelSize){
+    modelSize = length(SCLabels)
+    print(paste("Model size was switched to:",modelSize,sep=" "))
+  }
   if(!is.null(SCData) & !is.null(SCLabels) & !is.null(BulkData) & !is.null(cellSpace)){
     print("Selecting cells for each iteration")
   }

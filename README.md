@@ -7,6 +7,7 @@ scBio is a R pacakge containing a repository of methods aiming to understand com
 
 ## CPM
 A method based on computational deconvolution for identifying a cell population map from bulk gene expression data of a heterogeneous sample. The CPM method provides an advantageous alternative to existing deconvolution approaches, particularly in providing a fine-resolution mapping. Specifically, CPM is focused on cell alterations within each cell type and not changes in the total number of cells in the cell type. Therefore, it can model cell changes across trajectories and specific cell subtypes.
+Importantly, using CPM for cell-type deconvolution (instead of cell states across cell types) is not straightforward. Please look at the cell type prediction section if you want to use the algorithm for that purpose.
 
 ### Inputs
 #### CPM has four mandetory inputs:

@@ -75,7 +75,7 @@ resAbs = CPM(SCFluAbs, SCLabels, BulkFluAbs, SCCellSpace, no_cores = 6)
 ```
 
 ### Cell type prediction
-Cell type predition is only a side result in this algorithm but it can be done as well.
+Cell type predition is only a side result in this algorithm but it can be done as well. In order to get a proper cell-type predictions, it is crutial to set the cell space to be as homogeneous as possible. One option is to create the cell space based on genes which have the lowest variance across the cells (but small amount of zeros). Otherwise, CPM will detect trajectories inside the cell types and the cell-type prediction will be the average across these trajectories. Seperation between cell-types uppon the cell space is not important since CPM divide the cell space into small fragments, corresponding to the different cell types.
 
 Using relative data:
 ```

@@ -18,8 +18,7 @@ SCLabels - A vector containing the labels of each of the cells.
 
 BulkData - A matrix containing heterogenous RNA-seq data for one or more samples. Each row corresponds to a certain gene and each column to a certain sample.
 
-cellSpace - The cell state space corresponding to the single-cell RNA-seq data. It can be a vector for a 1-dim space or a 2D matrix for a two space where each column represents a different dimension. The cell space should incorporate the similarities of cells within cell types. It is suggested to create a cell space for each one of the cell-types, taking into consideration the unique variability within the cell-types, and than combine those into one matrix.
-##### Similarities between cells from different cell types, based on the cell space, are not taken into account in CPM. Therefore, it is not important to have a seperation between different cell-types on the cell space. CPM allows overlapping cell-types.
+cellSpace - The cell state space corresponding to the single-cell RNA-seq data. It can be a vector for a 1-dim space or a 2D matrix for a two space where each column represents a different dimension. The cell space should incorporate the similarities of cells within cell types. It is suggested to create a cell space for each one of the cell-types, taking into consideration the unique variability within the cell-types, and than combine those into one matrix. Importantly, similarities between cells from different cell types, based on the cell space, are not taken into account in CPM. Therefore, it is not required to have a seperation between different cell-types on the cell space. CPM allows overlapping cell-types.
 
 ```
 data(SCLabels)

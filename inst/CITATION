@@ -1,0 +1,16 @@
+citHeader("To cite scBio in publications use:")
+
+citEntry(
+  entry    = "Article",
+  title    = "Cell composition analysis of bulk genomics using single-cell data",
+  author   = "Amit Frishberg, Naama Peshes-Yaloz, Ofir Cohn, Diana Rosentul, Yael Steuerman, Liran Valadarsky, Gal Yankovitz, Michal Mandelboim, Fuad A. Iraqi, Ido Amit, Lior Mayo, Eran Bacharach, Irit Gat-Viks",
+  journal  = "Nature Methods",
+  year     = "2019",
+  volume   = "16",
+  pages    = "327–332",
+  url      = "https://www.nature.com/articles/s41592-019-0355-5",
+  textVersion = "Frishberg A, Peshes-Yaloz N, Cohn O, Rosentul D, Steuerman Y, Valadarsky L, Yankovitz G,
+Mandelboim M, Iraqi FA, Amit I, Mayo L, Bacharach E, Gat-Viks I (2019). Cell composition
+analysis of bulk genomics using single-cell data, volume 16. <URL:
+https://www.nature.com/articles/s41592-019-0355-5>."
+)

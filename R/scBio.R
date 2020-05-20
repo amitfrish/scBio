@@ -238,14 +238,14 @@ choseCellsForRuns = function(XY, refNames, modelSize, minSelection, neighborhood
 #' @keywords internal
 CPMMain = function(refference,refferenceNames, Y, chosenCellList, chosenCellNeigList ,numOfRuns, modelSize, neighborhoodSize,
                      no_cores, genePercents, quantifyTypes, typeTransformation, calculateCI){
-  YReduced = Y[row.names(Y) %in% row.names(refference),]
+  YReduced = Y[row.names(Y) %in% row.names(refference), , drop = FALSE]
 
   ##### Revome genes low in reference data  #####
   geneVarianceRef = apply(refference,1,function(gene){checkVariableGenes(as.numeric(as.matrix(gene)),0.1)})
   geneVarianceFinalRef = sort(geneVarianceRef[geneVarianceRef>0],decreasing = T)
   mutualGenes = names(geneVarianceFinalRef)[names(geneVarianceFinalRef) %in% row.names(YReduced)]
 
-  YReduced = YReduced[mutualGenes,]
+  YReduced = YReduced[mutualGenes, , drop = FALSE]
   refferenceSmaller = refference[mutualGenes,]
 
   ##### Main algorithm runs #####
@@ -280,11 +280,16 @@ CPMMain = function(refference,refferenceNames, Y, chosenCellList, chosenCellNeig
     allGenes = c()
 
     #list of genes inside clusters
+
+    if(quantifyTypes){
+      allGenesList = GeneBasedAnova(completeSpecificRef)
+    }else{
       allGenesList = lapply(unique(refferenceNames), function(cluster){
         specificClusterRef = completeSpecificRef[,which(clusterNamesVector == cluster)]
         colnames(specificClusterRef) = colnames(completeSpecificRef)[clusterNamesVector == cluster]
         GeneBasedAnova(specificClusterRef)
       })
+    }
 
     for (list in allGenesList){
       allGenes = c(allGenes, list)
@@ -455,7 +460,10 @@ CPM = function(SCData, SCLabels, BulkData, cellSpace, no_cores = NULL, neighborh
     neighborhoodSize = min(table(SCLabels))
     print(paste("Neighborhood size was switched to:",neighborhoodSize,sep=" "))
   }
-  if(length(SCLabels)<modelSize){
+  if(quantifyTypes){
+    modelSize = length(unique(SCLabels))
+    print(paste("Model size was switched to:",modelSize,sep=" "))
+  }else if(length(SCLabels)<modelSize){
     modelSize = length(SCLabels)
     print(paste("Model size was switched to:",modelSize,sep=" "))
   }

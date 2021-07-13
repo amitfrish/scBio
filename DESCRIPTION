@@ -13,4 +13,4 @@ LazyData: true
 RoxygenNote: 7.0.2
 biocViews: limma
 Depends: R (>= 2.10)
-Imports: sp, foreach, parallel, doSNOW, raster, fields, LiblineaR, limma
+Imports: sp, foreach, parallel, doSNOW, raster, fields, LiblineaR, limma, dotCall64
